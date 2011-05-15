@@ -353,7 +353,8 @@ void show_mount_usb_storage_menu()
         return -1;
     }
 
-    if (write(fd, vol->device, strlen(vol->device)) < 0) {
+    if ((write(fd, vol->device, strlen(vol->device)) < 0) &&
+        (!vol->device2 || (write(fd, vol->device, strlen(vol->device2)) < 0))) {
         LOGE("Unable to write to ums lunfile (%s)", strerror(errno));
         close(fd);
         return -1;
@@ -489,8 +490,19 @@ typedef struct {
 
 int is_safe_to_format(char* name)
 {
-    return !(strcmp(name, "/misc") == 0 || strcmp(name, "/radio") == 0
-            || strcmp(name, "/bootloader") == 0 || strcmp(name, "/recovery") == 0);
+    char str[255];
+    char* partition;
+    property_get("ro.recovery.format_ignore_partitions", str, "/misc,/radio,/bootloader,/recovery");
+
+    partition = strtok(str, ", ");
+    while (partition != NULL) {
+        if (strcmp(name, partition) == 0) {
+            return 0;
+        }
+        partition = strtok(NULL, ", ");
+    }
+
+    return 1;
 }
 
 void show_partition_menu()
@@ -548,6 +560,7 @@ void show_partition_menu()
 
     static char* confirm_format  = "Confirm format?";
     static char* confirm = "Yes - Format";
+    char confirm_string[255];
 
     for (;;)
     {
@@ -601,7 +614,9 @@ void show_partition_menu()
             FormatMenuEntry* e = &format_menue[chosen_item];
             Volume* v = e->v;
 
-            if (!confirm_selection(confirm_format, confirm))
+            sprintf(confirm_string, "%s - %s", v->mount_point, confirm_format);
+
+            if (!confirm_selection(confirm_string, confirm))
                 continue;
             ui_print("Formatting %s...\n", v->mount_point);
             if (0 != format_volume(v->mount_point))
@@ -871,6 +886,9 @@ void show_advanced_menu()
         switch (chosen_item)
         {
             case 0:
+#ifdef TARGET_RECOVERY_PRE_COMMAND
+                __system( TARGET_RECOVERY_PRE_COMMAND );
+#endif
                 __reboot(LINUX_REBOOT_MAGIC1, LINUX_REBOOT_MAGIC2, LINUX_REBOOT_CMD_RESTART2, "recovery");
                 break;
             case 1:
