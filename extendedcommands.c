@@ -38,6 +38,8 @@
 #include "mounts.h"
 #include "flashutils/flashutils.h"
 #include "edify/expr.h"
+#include <libgen.h>
+
 
 int signature_check_enabled = 1;
 int script_assert_enabled = 1;
@@ -421,8 +423,8 @@ int format_unknown_device(const char *device, const char* path, const char *fs_t
     LOGI("Formatting unknown device.\n");
 
     // device may simply be a name, like "system"
-    if (device[0] != '/')
-        return erase_raw_partition(device);
+    if (get_flash_type(fs_type) != UNSUPPORTED)
+        return erase_raw_partition(fs_type, device);
 
     // if this is SDEXT:, don't worry about it if it does not exist.
     if (0 == strcmp(path, "/sd-ext"))
@@ -638,6 +640,8 @@ int extendedcommand_file_exists()
     struct stat file_info;
     return 0 == stat(EXTENDEDCOMMAND_SCRIPT, &file_info);
 }
+
+void process_volumes();
 
 int edify_main(int argc, char** argv) {
     load_volume_table();

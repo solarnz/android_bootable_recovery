@@ -37,6 +37,25 @@
 
 #include "extendedcommands.h"
 #include "nandroid.h"
+#include "flashutils/flashutils.h"
+#include <libgen.h>
+
+
+void nandroid_generate_timestamp_path(const char* backup_path)
+{
+    time_t t = time(NULL);
+    struct tm *tmp = localtime(&t);
+    if (tmp == NULL)
+    {
+        struct timeval tp;
+        gettimeofday(&tp, NULL);
+        sprintf(backup_path, "/sdcard/clockworkmod/backup/%d", tp.tv_sec);
+    }
+    else
+    {
+        strftime(backup_path, PATH_MAX, "/sdcard/clockworkmod/backup/%F.%H.%M.%S", tmp);
+    }
+}
 
 int print_and_error(const char* message) {
     ui_print("%s", message);
@@ -45,7 +64,7 @@ int print_and_error(const char* message) {
 
 int yaffs_files_total = 0;
 int yaffs_files_count = 0;
-void yaffs_callback(char* filename)
+void yaffs_callback(const char* filename)
 {
     char* justfile = basename(filename);
     if (strlen(justfile) < 30)
@@ -56,7 +75,7 @@ void yaffs_callback(char* filename)
     ui_reset_text_col();
 }
 
-void compute_directory_stats(char* directory)
+void compute_directory_stats(const char* directory)
 {
     char tmp[PATH_MAX];
     sprintf(tmp, "find %s | wc -l > /tmp/dircount", directory);
@@ -115,7 +134,7 @@ int nandroid_backup_partition(const char* backup_path, const char* root) {
         const char* name = basename(root);
         sprintf(tmp, "%s/%s.img", backup_path, name);
         ui_print("Backing up %s image...\n", name);
-        if (0 != (ret = backup_raw_partition(vol->device, tmp))) {
+        if (0 != (ret = backup_raw_partition(vol->fs_type, vol->device, tmp))) {
             ui_print("Error while backing up %s image!", name);
             return ret;
         }
@@ -162,7 +181,7 @@ int nandroid_backup(const char* backup_path)
         serialno[0] = 0;
         property_get("ro.serialno", serialno, "");
         sprintf(tmp, "%s/wimax.%s.img", backup_path, serialno);
-        ret = backup_raw_partition(vol->device, tmp);
+        ret = backup_raw_partition(vol->fs_type, vol->device, tmp);
         if (0 != ret)
             return print_and_error("Error while dumping WiMAX image!\n");
     }
@@ -294,7 +313,7 @@ int nandroid_restore_partition(const char* backup_path, const char* root) {
         }
         sprintf(tmp, "%s%s.img", backup_path, root);
         ui_print("Restoring %s image...\n", name);
-        if (0 != (ret = restore_raw_partition(vol->device, tmp))) {
+        if (0 != (ret = restore_raw_partition(vol->fs_type, vol->device, tmp))) {
             ui_print("Error while flashing %s image!", name);
             return ret;
         }
@@ -348,7 +367,7 @@ int nandroid_restore(const char* backup_path, int restore_boot, int restore_syst
             if (0 != (ret = format_volume("/wimax")))
                 return print_and_error("Error while formatting wimax!\n");
             ui_print("Restoring WiMAX image...\n");
-            if (0 != (ret = restore_raw_partition(vol->device, tmp)))
+            if (0 != (ret = restore_raw_partition(vol->fs_type, vol->device, tmp)))
                 return ret;
         }
     }
@@ -378,22 +397,6 @@ int nandroid_restore(const char* backup_path, int restore_boot, int restore_syst
     ui_reset_progress();
     ui_print("\nRestore complete!\n");
     return 0;
-}
-
-void nandroid_generate_timestamp_path(char* backup_path)
-{
-    time_t t = time(NULL);
-    struct tm *tmp = localtime(&t);
-    if (tmp == NULL)
-    {
-        struct timeval tp;
-        gettimeofday(&tp, NULL);
-        sprintf(backup_path, "/sdcard/clockworkmod/backup/%d", tp.tv_sec);
-    }
-    else
-    {
-        strftime(backup_path, PATH_MAX, "/sdcard/clockworkmod/backup/%F.%H.%M.%S", tmp);
-    }
 }
 
 int nandroid_usage()
