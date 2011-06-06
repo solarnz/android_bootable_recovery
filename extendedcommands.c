@@ -1026,6 +1026,8 @@ void show_advanced_menu()
             }
             case 5:
             {
+		ui_print("Too many people have bricked their devices by doing this.\nTherefore this feature has been disabled.\n");
+	    /*
                 static char* ext_sizes[] = { "128M",
                                              "256M",
                                              "512M",
@@ -1064,7 +1066,7 @@ void show_advanced_menu()
                 if (0 == __system(cmd))
                     ui_print("Done!\n");
                 else
-                    ui_print("An error occured while partitioning your SD Card. Please see /tmp/recovery.log for more details.\n");
+                    ui_print("An error occured while partitioning your SD Card. Please see /tmp/recovery.log for more details.\n");*/
                 break;
             }
             case 6:
@@ -1078,6 +1080,8 @@ void show_advanced_menu()
             }
             case 7:
             {
+		ui_print("Too many people have bricked their devices by doing this.\nTherefore this feature has been disabled.\n");
+	    /*
                 static char* ext_sizes[] = { "128M",
                                              "256M",
                                              "512M",
@@ -1116,7 +1120,7 @@ void show_advanced_menu()
                 if (0 == __system(cmd))
                     ui_print("Done!\n");
                 else
-                    ui_print("An error occured while partitioning your Internal SD Card. Please see /tmp/recovery.log for more details.\n");
+                    ui_print("An error occured while partitioning your Internal SD Card. Please see /tmp/recovery.log for more details.\n");*/
                 break;
             }
         }
