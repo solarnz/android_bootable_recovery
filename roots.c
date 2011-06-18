@@ -21,7 +21,6 @@
 #include <sys/types.h>
 #include <unistd.h>
 #include <ctype.h>
-#include <dirent.h>
 
 #include "mtdutils/mtdutils.h"
 #include "mounts.h"
@@ -284,51 +283,8 @@ int ensure_path_unmounted(const char* path) {
     return unmount_mounted_volume(mv);
 }
 
-int clear_data (const char *dirname, int not_at_root) {
-	if (0 == strcmp(dirname, "/data/media")){
-		return 0;
-	}
-
-	int ret;
-	DIR *dir;
-	struct dirent *entry;
-	char path[PATH_MAX];
-
-	if (path == NULL) {
-		ui_print ("Out of memory. ");
-		return 1;
-	}	
-
-	dir = opendir (dirname);
-	if (dir == NULL)
-		return 0;
-	
-	while ((entry = readdir(dir)) != NULL) {
-		if (strcmp(entry->d_name, ".") && strcmp(entry->d_name, "..")){
-			snprintf(path, (size_t) PATH_MAX, "%s/%s", dirname, entry->d_name);
-			if (entry->d_type == DT_DIR) {
-				if (0 != (ret = clear_data (path, 1))) {
-					return ret;
-				}
-			}
-
-			if (strcmp(path, "/data/media") && -1 == (ret = remove (path))) {
-				ui_reset_text_col();
-				ui_print("Error removing %s", path);
-				return ret;
-			}
-			
-		}
-	}
-
-	closedir(dir);
-	return 0;
-}
-
 int format_volume(const char* volume) {
-    struct stat file_info;
     Volume* v = volume_for_path(volume);
-
     if (v == NULL) {
         // no /sdcard? let's assume /data/media
         if (strstr(volume, "/sdcard") == volume && is_data_media()) {
@@ -339,14 +295,6 @@ int format_volume(const char* volume) {
             return -1;
         LOGE("unknown volume \"%s\"\n", volume);
         return -1;
-    }
-    if (0 != stat("/sdcard/clockworkmod/eraseData", &file_info) && strcmp(v->mount_point, "/data") == 0){
-	int ret;
-	if (0 != (ret = ensure_path_mounted(v->mount_point))){
-		return ret;
-	} 
-	
-	return clear_data(v->mount_point, 0);
     }
     if (strcmp(v->fs_type, "ramdisk") == 0) {
         // you can't format the ramdisk.
