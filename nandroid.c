@@ -98,13 +98,13 @@ static void compute_directory_stats(const char* directory)
 }
 
 typedef void (*file_event_callback)(const char* filename);
-typedef int (*nandroid_backup_handler)(const char* backup_path, const char* backup_file_image, const file_event_callback callback);
+typedef int (*nandroid_backup_handler)(const char* backup_path, const char* backup_file_image, int callback);
 
-static int mkyaffs2image_wrapper(const char* backup_path, const char* backup_file_image, const file_event_callback callback) {
+static int mkyaffs2image_wrapper(const char* backup_path, const char* backup_file_image, int callback) {
     return mkyaffs2image(backup_path, backup_file_image, 0, callback);
 }
 
-static int tar_compress_wrapper(const char* backup_path, const char* backup_file_image, const file_event_callback callback) {
+static int tar_compress_wrapper(const char* backup_path, const char* backup_file_image, int callback) {
     char tmp[PATH_MAX];
     if (strcmp(backup_path, "/data") == 0 && volume_for_path("/sdcard") == NULL)
       sprintf(tmp, "cd $(dirname %s) ; tar cvf %s --exclude 'media' $(basename %s) ; exit $?", backup_path, backup_file_image, backup_path);
@@ -119,7 +119,7 @@ static int tar_compress_wrapper(const char* backup_path, const char* backup_file
 
     while (fgets(tmp, PATH_MAX, fp) != NULL) {
         tmp[PATH_MAX - 1] = NULL;
-        if (NULL != callback)
+        if (callback)
             yaffs_callback(tmp);
     }
 
@@ -163,10 +163,7 @@ int nandroid_backup_partition_extended(const char* backup_path, const char* moun
     char* name = basename(mount_point);
 
     struct stat file_info;
-    file_event_callback callback = NULL;
-    if (0 != stat("/sdcard/clockworkmod/.hidenandroidprogress", &file_info)) {
-        callback = yaffs_callback;
-    }
+    int callback = stat("/sdcard/clockworkmod/.hidenandroidprogress", &file_info) == 0;
     
     ui_print("Backing up %s...\n", name);
     if (0 != (ret = ensure_path_mounted(mount_point) != 0)) {
@@ -413,13 +410,13 @@ static void ensure_directory(const char* dir) {
     __system(tmp);
 }
 
-typedef int (*nandroid_restore_handler)(const char* backup_file_image, const char* backup_path, file_event_callback callback);
+typedef int (*nandroid_restore_handler)(const char* backup_file_image, const char* backup_path, int callback);
 
-static int unyaffs_wrapper(const char* backup_file_image, const char* backup_path, file_event_callback callback) {
+static int unyaffs_wrapper(const char* backup_file_image, const char* backup_path, int callback) {
     return unyaffs(backup_file_image, backup_path, callback);
 }
 
-static int tar_extract_wrapper(const char* backup_file_image, const char* backup_path, file_event_callback callback) {
+static int tar_extract_wrapper(const char* backup_file_image, const char* backup_path, int callback) {
     char tmp[PATH_MAX];
     sprintf(tmp, "cd $(dirname %s) ; tar xvf %s ; exit $?", backup_path, backup_file_image);
 
@@ -431,8 +428,8 @@ static int tar_extract_wrapper(const char* backup_file_image, const char* backup
     }
 
     while (fgets(path, PATH_MAX, fp) != NULL) {
-        if (NULL != callback)
-            callback(path);
+        if (callback)
+            yaffs_callback(path);
     }
 
     return __pclose(fp);
@@ -483,10 +480,7 @@ int nandroid_restore_partition_extended(const char* backup_path, const char* mou
 
     ensure_directory(mount_point);
 
-    file_event_callback callback = NULL;
-    if (0 != stat("/sdcard/clockworkmod/.hidenandroidprogress", &file_info)) {
-        callback = yaffs_callback;
-    }
+    int callback = stat("/sdcard/clockworkmod/.hidenandroidprogress", &file_info) == 0;
 
     ui_print("Restoring %s...\n", name);
     /*
