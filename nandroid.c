@@ -101,7 +101,7 @@ typedef void (*file_event_callback)(const char* filename);
 typedef int (*nandroid_backup_handler)(const char* backup_path, const char* backup_file_image, int callback);
 
 static int mkyaffs2image_wrapper(const char* backup_path, const char* backup_file_image, int callback) {
-    return mkyaffs2image(backup_path, backup_file_image, 0, callback);
+    return mkyaffs2image(backup_path, backup_file_image, 0, callback ? yaffs_callback : NULL);
 }
 
 static int tar_compress_wrapper(const char* backup_path, const char* backup_file_image, int callback) {
@@ -274,6 +274,16 @@ int nandroid_backup(const char* backup_path)
     else
     {
         if (0 != (ret = nandroid_backup_partition_extended(backup_path, "/sdcard/.android_secure", 0)))
+            return ret;
+    }
+
+    if (0 != stat("/sdcard/Android", &s))
+    {
+        ui_print("No /sdcard/Android found. Skipping backup of application files on external storage.\n");
+    }
+    else
+    {
+        if (0 != (ret = nandroid_backup_partition_extended(backup_path, "/sdcard/Android", 0)))
             return ret;
     }
 
@@ -607,6 +617,9 @@ int nandroid_restore(const char* backup_path, int restore_boot, int restore_syst
     }
 
     if (restore_data && 0 != (ret = nandroid_restore_partition_extended(backup_path, "/sdcard/.android_secure", 0)))
+        return ret;
+
+    if (restore_data && 0 != (ret = nandroid_restore_partition_extended(backup_path, "/sdcard/Android", 0)))
         return ret;
 
     if (restore_cache && 0 != (ret = nandroid_restore_partition_extended(backup_path, "/cache", 0)))
