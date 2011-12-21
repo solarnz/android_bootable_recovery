@@ -47,9 +47,16 @@ static int gShowBackButton = 0;
 #define MENU_MAX_COLS 64
 #define MENU_MAX_ROWS 250
 
+//10 / 18 is default for LDPI
+
 #ifndef BOARD_LDPI_RECOVERY
-  #define CHAR_WIDTH 10
-  #define CHAR_HEIGHT 18
+  #ifdef BOARD_XDPI_RECOVERY
+      #define CHAR_WIDTH 19
+      #define CHAR_HEIGHT 31
+  #else
+      #define CHAR_WIDTH 10
+      #define CHAR_HEIGHT 18
+  #endif
 #else
   #define CHAR_WIDTH 7
   #define CHAR_HEIGHT 16
@@ -209,6 +216,7 @@ static void draw_text_line(int row, const char* t) {
 
 //#define MENU_TEXT_COLOR 255, 160, 49, 255
 #define MENU_TEXT_COLOR 0, 191, 255, 255
+//#define MENU_TEXT_COLOR 255, 255, 255, 255
 #define NORMAL_TEXT_COLOR 200, 200, 200, 255
 #define HEADER_TEXT_COLOR NORMAL_TEXT_COLOR
 
