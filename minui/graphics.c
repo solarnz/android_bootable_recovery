@@ -30,7 +30,16 @@
 
 #include <pixelflinger/pixelflinger.h>
 
-#include "font_10x18.h"
+#ifndef LDPI
+  #ifdef XDPI
+      #include "font_19x31.h"
+  #else
+      #include "font_10x18.h"
+  #endif
+#else
+    #include "font_7x16.h"
+#endif
+
 #include "minui.h"
 
 #if defined(RECOVERY_BGRA)
@@ -213,8 +222,21 @@ int gr_text(int x, int y, const char *s)
     GGLContext *gl = gr_context;
     GRFont *font = gr_font;
     unsigned off;
+    static int currentcolor = 0;
 
     y -= font->ascent;
+
+    //int currentcolor = passedcolor;
+    int maxcolors = 28;
+    int colors[maxcolors];
+    colors[0] = 255; colors[1] = 0; colors[2] = 0; colors[3] = 255;
+    colors[4] = 255; colors[5] = 127; colors[6] = 0; colors[7] = 255;
+    colors[8] = 255; colors[9] = 255; colors[10] = 0; colors[11] = 255;
+    colors[12] = 0; colors[13] = 255; colors[14] = 0; colors[15] = 255;
+    colors[16] = 0; colors[17] = 0; colors[18] = 255; colors[19] = 255;
+    colors[20] = 111; colors[21] = 0; colors[22] = 255; colors[23] = 255;
+    colors[24] = 143; colors[25] = 0; colors[26] = 255; colors[27] = 255;    
+
 
     gl->bindTexture(gl, &font->texture);
     gl->texEnvi(gl, GGL_TEXTURE_ENV, GGL_TEXTURE_ENV_MODE, GGL_REPLACE);
@@ -225,6 +247,11 @@ int gr_text(int x, int y, const char *s)
     while((off = *s++)) {
         off -= 32;
         if (off < 96) {
+            //gr_color(colors[currentcolor], colors[currentcolor+1], colors[currentcolor+2], colors[currentcolor+3]);
+            if(s != 'c') currentcolor += 4;
+            if(currentcolor >= maxcolors) currentcolor = 0;
+
+
             gl->texCoord2i(gl, (off * font->cwidth) - x, 0 - y);
             gl->recti(gl, x, y, x + font->cwidth, y + font->cheight);
         }
