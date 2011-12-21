@@ -1,0 +1,22 @@
+
+*** These modified files were found in JOE when it aborted on Mon Dec 19 07:53:55 2011
+*** JOE was aborted by UNIX signal 1
+
+*** File '(Unnamed)'
+Advanced
+reboot
+reboot
+font
+
+*** File '(Unnamed)'
+Android.mk
+extendedcommands.
+extendedcommands.c
+recovery.c
+recovery_ui.h
+extendedcommands.c
+recovery.fstab
+default_recovery_ui.c
+default_recovery_ui.c
+bootable/recovery/Android.mk
+minui/graphics.c
