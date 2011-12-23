@@ -30,12 +30,10 @@
 
 #include <pixelflinger/pixelflinger.h>
 
-#ifndef LDPI
-  #ifdef XDPI
-      #include "font_19x31.h"
-  #else
-      #include "font_10x18.h"
-  #endif
+#if defined(BOARD_XDPI_RECOVERY)
+    #include "font_19x31.h"
+#elif defined(BOARD_MDPI_RECOVERY)
+    #include "font_10x18.h"
 #else
     #include "font_7x16.h"
 #endif
