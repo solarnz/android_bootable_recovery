@@ -51,8 +51,8 @@ static int gShowBackButton = 0;
 
 #ifndef BOARD_LDPI_RECOVERY
   #ifdef BOARD_XDPI_RECOVERY
-      #define CHAR_WIDTH 15
-      #define CHAR_HEIGHT 24
+      #define CHAR_WIDTH 19
+      #define CHAR_HEIGHT 31
   #else
       #define CHAR_WIDTH 10
       #define CHAR_HEIGHT 18
@@ -77,7 +77,6 @@ static gr_surface *gInstallationOverlay;
 static gr_surface *gProgressBarIndeterminate;
 static gr_surface gProgressBarEmpty;
 static gr_surface gProgressBarFill;
-static gr_surface gVirtualKeys; // surface for our virtual key buttons
 static int ui_has_initialized = 0;
 static int ui_log_stdout = 1;
 
@@ -89,7 +88,6 @@ static const struct { gr_surface* surface; const char *name; } BITMAPS[] = {
     { &gBackgroundIcon[BACKGROUND_ICON_FIRMWARE_ERROR], "icon_firmware_error" },
     { &gProgressBarEmpty,               "progress_empty" },
     { &gProgressBarFill,                "progress_fill" },
-    { &gVirtualKeys,			"virtual_keys" },
     { NULL,                             NULL },
 };
 
@@ -210,18 +208,6 @@ static void draw_progress_locked()
     }
 }
 
-// Draw the virtual keys on the screen.  Does not flip pages.
-// Should only be called with gUpdateMutex locked.
-static void draw_virtualkeys_locked()
-{
-    gr_surface surface = gVirtualKeys;
-    int iconWidth = gr_get_width(surface);
-    int iconHeight = gr_get_height(surface);
-    int iconX = (gr_fb_width() - iconWidth) / 2;
-    int iconY = (gr_fb_height() - iconHeight);
-    gr_blit(surface, 0, 0, iconWidth, iconHeight, iconX, iconY);
-}
-
 static void draw_text_line(int row, const char* t) {
   if (t[0] != '\0') {
     gr_text(0, (row+1)*CHAR_HEIGHT-1, t);
@@ -241,7 +227,6 @@ static void draw_screen_locked(void)
     if (!ui_has_initialized) return;
     draw_background_locked(gCurrentIcon);
     draw_progress_locked();
-    draw_virtualkeys_locked(); //added to draw the virtual keys
 
     if (show_text) {
         gr_color(0, 0, 0, 160);
@@ -278,10 +263,8 @@ static void draw_screen_locked(void)
                 }
                 row++;
             }
-
-            gr_fill(0, (row-1)*CHAR_HEIGHT+CHAR_HEIGHT/2-1,
-                    gr_fb_width(), (row-1)*CHAR_HEIGHT+CHAR_HEIGHT/2+1);
-
+            gr_fill(0, row*CHAR_HEIGHT+CHAR_HEIGHT/2-1,
+                    gr_fb_width(), row*CHAR_HEIGHT+CHAR_HEIGHT/2+1);
         }
 
         gr_color(NORMAL_TEXT_COLOR);
@@ -364,30 +347,7 @@ static void *progress_thread(void *cookie)
     return NULL;
 }
 
-//kanged this vibrate stuff from teamwin (thanks guys!)
-#define VIBRATOR_TIMEOUT_FILE   "/sys/class/timed_output/vibrator/enable"
-#define VIBRATOR_TIME_MS        50
-
 static int rel_sum = 0;
-static int in_touch = 0; //1 = in a touch
-static int slide_right = 0;
-static int slide_left = 0;
-static int touch_x = 0;
-static int touch_y = 0;
-static int old_x = 0;
-static int old_y = 0;
-static int diff_x = 0;
-static int diff_y = 0;
-
-
-static void reset_gestures() {
-    diff_x = 0;
-    diff_y = 0;
-    old_x  = 0;
-    old_y = 0;
-    touch_x = 0;
-    touch_y = 0;
-}
 
 static int input_callback(int fd, short revents, void *data)
 {
@@ -425,91 +385,9 @@ static int input_callback(int fd, short revents, void *data)
     } else {
         rel_sum = 0;
     }
-    //printf("the end is in site! %i and %i and %i and %i and %i\n", ev.code, KEY_MAX, EV_KEY, ev.type, ev.value);
-    if(ev.type == 3 && ev.code == 57)  {
-        if(in_touch == 0) {
-            in_touch = 1; //starting to track touch...
-            reset_gestures();
-        } else {
-            //finger lifted! lets run with this
-            ev.type = EV_KEY; //touch panel support!!!
-            if(touch_y > 1280 - 96 && touch_x > 0) {
-                //they lifted in the touch panel region                
-                if(touch_x < 173) {
-                    //back button
-                    ev.code = KEY_BACK;
-                } else if(touch_x < 360) {
-                    //up button
-                    ev.code = KEY_UP;
-                } else if(touch_x < 550) {
-                    //down button
-                    ev.code = KEY_DOWN;
-                } else {
-                    //enter key
-                    ev.code = KEY_ENTER;
-                }
-                vibrate(VIBRATOR_TIME_MS);
-            }
-            if(slide_right == 1) {
-                ev.code = KEY_ENTER;
-                slide_right = 0;
-            } else if(slide_left == 1) {
-                ev.code = KEY_BACK;
-                slide_left = 0;
-            }
 
-            ev.value = 1;
-            in_touch = 0;
-            reset_gestures();
-        }
-    } else if(ev.type == 3 && ev.code == 53) {
-        old_x = touch_x;
-        touch_x = ev.value;
-        if(old_x != 0) diff_x += touch_x - old_x;
-    
-        if(touch_y < 1280 - 196) {
-            if(diff_x > 100) {
-                printf("Gesture forward generated\n");
-                slide_right = 1;
-                //ev.code = KEY_ENTER;
-                //ev.type = EV_KEY;
-                reset_gestures();
-            } else if(diff_x < -100) {
-                printf("Gesture back generated\n");
-                slide_left = 1;
-                //ev.code = KEY_BACK;
-                //ev.type = EV_KEY;
-                reset_gestures();
-            }
-        } else {
-            //reset_gestures();
-        }
-    } else if(ev.type == 3 && ev.code == 54) {
-        old_y = touch_y;
-        touch_y = ev.value;
-        if(old_y != 0) diff_y += touch_y - old_y;
-                
-        if(touch_y < 1280 - 196) {        
-            if(diff_y > 100) {
-                printf("Gesture Down generated\n");
-                ev.code = KEY_DOWN;
-                ev.type = EV_KEY;
-                reset_gestures();
-            } else if(diff_y < -100) {
-                printf("Gesture Up generated\n");
-                ev.code = KEY_UP;
-                ev.type = EV_KEY;
-                reset_gestures();
-            }
-        } else {
-            //reset_gestures();
-        }
-    }
-    
-    if (ev.type != EV_KEY || ev.code > KEY_MAX) {
+    if (ev.type != EV_KEY || ev.code > KEY_MAX)
         return 0;
-
-    }
 
     pthread_mutex_lock(&key_queue_mutex);
     if (!fake_key) {
@@ -775,9 +653,6 @@ int ui_start_menu(char** headers, char** items, int initial_selection) {
             strcpy(menu[i], " - +++++Go Back+++++");
             ++i;
         }
-        
-        strcpy(menu[i], " ");
-        ++i;
 
         menu_items = i - menu_top;
         show_menu = 1;
@@ -798,8 +673,8 @@ int ui_menu_select(int sel) {
         old_sel = menu_sel;
         menu_sel = sel;
 
-        if (menu_sel < 0) menu_sel = menu_items-1 + menu_sel;
-        if (menu_sel >= menu_items-1) menu_sel = menu_sel - menu_items+1;
+        if (menu_sel < 0) menu_sel = menu_items + menu_sel;
+        if (menu_sel >= menu_items) menu_sel = menu_sel - menu_items;
 
 
         if (menu_sel < menu_show_start && menu_show_start > 0) {
@@ -898,7 +773,6 @@ int ui_wait_key()
         key = key_queue[0];
         memcpy(&key_queue[0], &key_queue[1], sizeof(int) * --key_queue_len);
     }
-    //printf("somethign happened over here!");
     pthread_mutex_unlock(&key_queue_mutex);
     return key;
 }

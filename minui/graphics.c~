@@ -246,7 +246,7 @@ int gr_text(int x, int y, const char *s)
     while((off = *s++)) {
         off -= 32;
         if (off < 96) {
-            //gr_color(colors[currentcolor], colors[currentcolor+1], colors[currentcolor+2], colors[currentcolor+3]);
+            gr_color(colors[currentcolor], colors[currentcolor+1], colors[currentcolor+2], colors[currentcolor+3]);
             if(s != 'c') currentcolor += 4;
             if(currentcolor >= maxcolors) currentcolor = 0;
 

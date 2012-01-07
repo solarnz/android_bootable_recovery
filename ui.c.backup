@@ -51,8 +51,8 @@ static int gShowBackButton = 0;
 
 #ifndef BOARD_LDPI_RECOVERY
   #ifdef BOARD_XDPI_RECOVERY
-      #define CHAR_WIDTH 15
-      #define CHAR_HEIGHT 24
+      #define CHAR_WIDTH 19
+      #define CHAR_HEIGHT 31
   #else
       #define CHAR_WIDTH 10
       #define CHAR_HEIGHT 18
@@ -77,7 +77,7 @@ static gr_surface *gInstallationOverlay;
 static gr_surface *gProgressBarIndeterminate;
 static gr_surface gProgressBarEmpty;
 static gr_surface gProgressBarFill;
-static gr_surface gVirtualKeys; // surface for our virtual key buttons
+static gr_surface gVirtualKeys;
 static int ui_has_initialized = 0;
 static int ui_log_stdout = 1;
 
@@ -241,7 +241,7 @@ static void draw_screen_locked(void)
     if (!ui_has_initialized) return;
     draw_background_locked(gCurrentIcon);
     draw_progress_locked();
-    draw_virtualkeys_locked(); //added to draw the virtual keys
+    draw_virtualkeys_locked();
 
     if (show_text) {
         gr_color(0, 0, 0, 160);
@@ -278,10 +278,8 @@ static void draw_screen_locked(void)
                 }
                 row++;
             }
-
             gr_fill(0, (row-1)*CHAR_HEIGHT+CHAR_HEIGHT/2-1,
                     gr_fb_width(), (row-1)*CHAR_HEIGHT+CHAR_HEIGHT/2+1);
-
         }
 
         gr_color(NORMAL_TEXT_COLOR);
@@ -364,41 +362,25 @@ static void *progress_thread(void *cookie)
     return NULL;
 }
 
-//kanged this vibrate stuff from teamwin (thanks guys!)
-#define VIBRATOR_TIMEOUT_FILE   "/sys/class/timed_output/vibrator/enable"
-#define VIBRATOR_TIME_MS        50
-
 static int rel_sum = 0;
 static int in_touch = 0; //1 = in a touch
-static int slide_right = 0;
-static int slide_left = 0;
 static int touch_x = 0;
 static int touch_y = 0;
-static int old_x = 0;
-static int old_y = 0;
-static int diff_x = 0;
-static int diff_y = 0;
-
-
-static void reset_gestures() {
-    diff_x = 0;
-    diff_y = 0;
-    old_x  = 0;
-    old_y = 0;
-    touch_x = 0;
-    touch_y = 0;
-}
 
 static int input_callback(int fd, short revents, void *data)
 {
+    //printf("stop touching me\n");
     struct input_event ev;
     int ret;
     int fake_key = 0;
 
     ret = ev_get_input(fd, revents, &ev);
+    //printf("made it here...\n");
     if (ret)
         return -1;
-
+    //printf("are we golden? %i adn %i\n",ret, ev.type);
+    //printf("ev value is: %i\n", ev.value);
+    //printf("ev type is: %i is it %i\n", ev.type, EV_REL);
     if (ev.type == EV_SYN) {
         return 0;
     } else if (ev.type == EV_REL) {
@@ -425,16 +407,19 @@ static int input_callback(int fd, short revents, void *data)
     } else {
         rel_sum = 0;
     }
+    //printf("ev value is: %i\n", ev.value);
     //printf("the end is in site! %i and %i and %i and %i and %i\n", ev.code, KEY_MAX, EV_KEY, ev.type, ev.value);
     if(ev.type == 3 && ev.code == 57)  {
+        //we either have a touch up or down!
         if(in_touch == 0) {
+            //printf("touch started\n");
             in_touch = 1; //starting to track touch...
-            reset_gestures();
         } else {
+            //printf("touch ended\n");
             //finger lifted! lets run with this
             ev.type = EV_KEY; //touch panel support!!!
-            if(touch_y > 1280 - 96 && touch_x > 0) {
-                //they lifted in the touch panel region                
+            if(touch_y > 1280 - 96) {
+                //they lifted in the touch panel region
                 if(touch_x < 173) {
                     //back button
                     ev.code = KEY_BACK;
@@ -448,69 +433,25 @@ static int input_callback(int fd, short revents, void *data)
                     //enter key
                     ev.code = KEY_ENTER;
                 }
-                vibrate(VIBRATOR_TIME_MS);
-            }
-            if(slide_right == 1) {
-                ev.code = KEY_ENTER;
-                slide_right = 0;
-            } else if(slide_left == 1) {
-                ev.code = KEY_BACK;
-                slide_left = 0;
             }
 
             ev.value = 1;
             in_touch = 0;
-            reset_gestures();
+            touch_x = 0;
+            touch_y = 0;
         }
-    } else if(ev.type == 3 && ev.code == 53) {
-        old_x = touch_x;
+    } else if(ev.type == 3 && ev.code == 53 && in_touch == 1) {
         touch_x = ev.value;
-        if(old_x != 0) diff_x += touch_x - old_x;
-    
-        if(touch_y < 1280 - 196) {
-            if(diff_x > 100) {
-                printf("Gesture forward generated\n");
-                slide_right = 1;
-                //ev.code = KEY_ENTER;
-                //ev.type = EV_KEY;
-                reset_gestures();
-            } else if(diff_x < -100) {
-                printf("Gesture back generated\n");
-                slide_left = 1;
-                //ev.code = KEY_BACK;
-                //ev.type = EV_KEY;
-                reset_gestures();
-            }
-        } else {
-            //reset_gestures();
-        }
-    } else if(ev.type == 3 && ev.code == 54) {
-        old_y = touch_y;
+    } else if(ev.type == 3 && ev.code == 54 && in_touch == 1) {
         touch_y = ev.value;
-        if(old_y != 0) diff_y += touch_y - old_y;
-                
-        if(touch_y < 1280 - 196) {        
-            if(diff_y > 100) {
-                printf("Gesture Down generated\n");
-                ev.code = KEY_DOWN;
-                ev.type = EV_KEY;
-                reset_gestures();
-            } else if(diff_y < -100) {
-                printf("Gesture Up generated\n");
-                ev.code = KEY_UP;
-                ev.type = EV_KEY;
-                reset_gestures();
-            }
-        } else {
-            //reset_gestures();
-        }
     }
     
+    //printf("\n\n");
     if (ev.type != EV_KEY || ev.code > KEY_MAX) {
+        //printf("not done, returning...\n\n");
         return 0;
-
     }
-
+    //printf("we did it!\n\n");
     pthread_mutex_lock(&key_queue_mutex);
     if (!fake_key) {
         // our "fake" keys only report a key-down event (no
@@ -543,6 +484,7 @@ static int input_callback(int fd, short revents, void *data)
 // Reads input events, handles special hot keys, and adds to the key queue.
 static void *input_thread(void *cookie)
 {
+    //printf("this here????");
     for (;;) {
         if (!ev_wait(-1))
             ev_dispatch();
@@ -772,12 +714,9 @@ int ui_start_menu(char** headers, char** items, int initial_selection) {
         }
 
         if (gShowBackButton) {
-            strcpy(menu[i], " - +++++Go Back+++++");
+            strcpy(menu[i], " ");
             ++i;
         }
-        
-        strcpy(menu[i], " ");
-        ++i;
 
         menu_items = i - menu_top;
         show_menu = 1;

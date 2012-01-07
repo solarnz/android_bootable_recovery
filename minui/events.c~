@@ -82,18 +82,18 @@ int ev_init(ev_callback input_cb, void *data)
             fd = openat(dirfd(dir), de->d_name, O_RDONLY);
             if(fd < 0) continue;
             //LOGE("oh...some inputs...oh...nice...");
+            //printf("hi there!");
             /* read the evbits of the input device */
-            if (ioctl(fd, EVIOCGBIT(0, sizeof(ev_bits)), ev_bits) < 0) {
-                close(fd);
-                continue;
-            }
+            //if (ioctl(fd, EVIOCGBIT(0, sizeof(ev_bits)), ev_bits) < 0) {
+            //    close(fd);
+            //    continue;
+            //}
 
             /* TODO: add ability to specify event masks. For now, just assume
              * that only EV_KEY and EV_REL event types are ever needed. */
-             //commented out so the touch panel events are allowed through
             //if (!test_bit(EV_KEY, ev_bits) && !test_bit(EV_REL, ev_bits)) {
-            //    close(fd);
-            //    continue;
+           //     close(fd);
+           //     continue;
             //}
 
             ev_fds[ev_count].fd = fd;
@@ -157,13 +157,16 @@ void ev_dispatch(void)
 int ev_get_input(int fd, short revents, struct input_event *ev)
 {
     int r;
-    if (revents & POLLIN) {
+    //printf("you tapped me like your mom\n");
+    //if (revents & POLLIN) {
         r = read(fd, ev, sizeof(*ev));
+        //printf("someone did something...%i\n", r);
         if (r == sizeof(*ev)) {
+            //printf("gonna return 0 now\n");
             return 0;
         }
             
-    }
+    //}
     return -1;
 }
 

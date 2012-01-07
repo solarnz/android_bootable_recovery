@@ -370,24 +370,8 @@ static void *progress_thread(void *cookie)
 
 static int rel_sum = 0;
 static int in_touch = 0; //1 = in a touch
-static int slide_right = 0;
-static int slide_left = 0;
 static int touch_x = 0;
 static int touch_y = 0;
-static int old_x = 0;
-static int old_y = 0;
-static int diff_x = 0;
-static int diff_y = 0;
-
-
-static void reset_gestures() {
-    diff_x = 0;
-    diff_y = 0;
-    old_x  = 0;
-    old_y = 0;
-    touch_x = 0;
-    touch_y = 0;
-}
 
 static int input_callback(int fd, short revents, void *data)
 {
@@ -425,15 +409,14 @@ static int input_callback(int fd, short revents, void *data)
     } else {
         rel_sum = 0;
     }
-    //printf("the end is in site! %i and %i and %i and %i and %i\n", ev.code, KEY_MAX, EV_KEY, ev.type, ev.value);
+    printf("the end is in site! %i and %i and %i and %i and %i\n", ev.code, KEY_MAX, EV_KEY, ev.type, ev.value);
     if(ev.type == 3 && ev.code == 57)  {
         if(in_touch == 0) {
             in_touch = 1; //starting to track touch...
-            reset_gestures();
         } else {
             //finger lifted! lets run with this
             ev.type = EV_KEY; //touch panel support!!!
-            if(touch_y > 1280 - 96 && touch_x > 0) {
+            if(touch_y > 1280 - 96) {
                 //they lifted in the touch panel region                
                 if(touch_x < 173) {
                     //back button
@@ -450,60 +433,14 @@ static int input_callback(int fd, short revents, void *data)
                 }
                 vibrate(VIBRATOR_TIME_MS);
             }
-            if(slide_right == 1) {
-                ev.code = KEY_ENTER;
-                slide_right = 0;
-            } else if(slide_left == 1) {
-                ev.code = KEY_BACK;
-                slide_left = 0;
-            }
 
             ev.value = 1;
             in_touch = 0;
-            reset_gestures();
         }
     } else if(ev.type == 3 && ev.code == 53) {
-        old_x = touch_x;
         touch_x = ev.value;
-        if(old_x != 0) diff_x += touch_x - old_x;
-    
-        if(touch_y < 1280 - 196) {
-            if(diff_x > 100) {
-                printf("Gesture forward generated\n");
-                slide_right = 1;
-                //ev.code = KEY_ENTER;
-                //ev.type = EV_KEY;
-                reset_gestures();
-            } else if(diff_x < -100) {
-                printf("Gesture back generated\n");
-                slide_left = 1;
-                //ev.code = KEY_BACK;
-                //ev.type = EV_KEY;
-                reset_gestures();
-            }
-        } else {
-            //reset_gestures();
-        }
     } else if(ev.type == 3 && ev.code == 54) {
-        old_y = touch_y;
         touch_y = ev.value;
-        if(old_y != 0) diff_y += touch_y - old_y;
-                
-        if(touch_y < 1280 - 196) {        
-            if(diff_y > 100) {
-                printf("Gesture Down generated\n");
-                ev.code = KEY_DOWN;
-                ev.type = EV_KEY;
-                reset_gestures();
-            } else if(diff_y < -100) {
-                printf("Gesture Up generated\n");
-                ev.code = KEY_UP;
-                ev.type = EV_KEY;
-                reset_gestures();
-            }
-        } else {
-            //reset_gestures();
-        }
     }
     
     if (ev.type != EV_KEY || ev.code > KEY_MAX) {
