@@ -433,18 +433,19 @@ static int input_callback(int fd, short revents, void *data)
         } else {
             //finger lifted! lets run with this
             ev.type = EV_KEY; //touch panel support!!!
-            if(touch_y > 1280 - 96 && touch_x > 0) {
+            if(touch_y > 1350 && touch_x > 0) {
                 //they lifted in the touch panel region                
-                if(touch_x < 173) {
+                if(touch_x < 540) {
+                }else if(touch_x < 850) {
                     //back button
                     ev.code = KEY_BACK;
-                } else if(touch_x < 360) {
+                } else if(touch_x < 1200) {
                     //up button
                     ev.code = KEY_UP;
-                } else if(touch_x < 550) {
+                } else if(touch_x < 1580) {
                     //down button
                     ev.code = KEY_DOWN;
-                } else {
+                } else if(touch_x < 1890) {
                     //enter key
                     ev.code = KEY_ENTER;
                 }
