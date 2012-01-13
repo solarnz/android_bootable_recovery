@@ -407,8 +407,10 @@ void show_mount_usb_storage_menu()
 int confirm_selection(const char* title, const char* confirm)
 {
     struct stat info;
-    if (0 == stat("/sdcard/clockworkmod/.no_confirm", &info))
+    if (0 == stat("/sdcard/clockworkmod/.confirm", &info)){
+    } else {
         return 1;
+    }
 
     char* confirm_headers[]  = {  title, "  THIS CAN NOT BE UNDONE.", "", NULL };
 	if (0 == stat("/sdcard/clockworkmod/.one_confirm", &info)) {
