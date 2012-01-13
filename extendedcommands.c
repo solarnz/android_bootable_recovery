@@ -80,16 +80,16 @@ int install_zip(const char* packagefilepath)
 }
 
 char* INSTALL_MENU_ITEMS[] = {  "choose zip from internal storage",
+                                "choose zip from external sdcard",
                                 "apply /sdcard/update.zip",
                                 "toggle signature verification",
                                 "toggle script asserts",
-                                "choose zip from external sdcard",
                                 NULL };
 #define ITEM_CHOOSE_ZIP       0
-#define ITEM_APPLY_SDCARD     1
-#define ITEM_SIG_CHECK        2
-#define ITEM_ASSERTS          3
-#define ITEM_CHOOSE_ZIP_INT   4
+#define ITEM_CHOOSE_ZIP_INT   1
+#define ITEM_APPLY_SDCARD     2
+#define ITEM_SIG_CHECK        3
+#define ITEM_ASSERTS          4
 
 void show_install_update_menu()
 {
@@ -820,13 +820,20 @@ void show_nandroid_menu()
     };
 
     static char* list[] = { "backup to internal storage",
-                            "restore from internal storage",
-                            "advanced restore from internal storage",
                             "backup to external sdcard",
+                            "restore from internal storage",
                             "restore from external sdcard",
+                            "advanced restore from internal storage",
                             "advanced restore from external sdcard",
                             NULL
     };
+
+#define BACKUP_INT      0
+#define BACKUP_EXT      1
+#define RESTORE_INT     2
+#define RESTORE_EXT     3
+#define ADV_RESTORE_INT 4
+#define ADV_RESTORE_EXT 5
 
     //if (volume_for_path("/emmc") == NULL || volume_for_path("/sdcard") == NULL && is_data_media())
     //    list[4] = NULL;
@@ -834,7 +841,7 @@ void show_nandroid_menu()
     int chosen_item = get_menu_selection(headers, list, 0, 0);
     switch (chosen_item)
     {
-        case 0:
+        case BACKUP_INT:
             {
                 char backup_path[PATH_MAX];
                 time_t t = time(NULL);
@@ -852,13 +859,13 @@ void show_nandroid_menu()
                 nandroid_backup(backup_path);
             }
             break;
-        case 1:
+        case RESTORE_INT:
             show_nandroid_restore_menu("/sdcard");
             break;
-        case 2:
+        case ADV_RESTORE_INT:
             show_nandroid_advanced_restore_menu("/sdcard");
             break;
-        case 3:
+        case BACKUP_EXT:
             {
                 char backup_path[PATH_MAX];
                 time_t t = time(NULL);
@@ -876,10 +883,10 @@ void show_nandroid_menu()
                 nandroid_backup(backup_path);
             }
             break;
-        case 4:
+        case RESTORE_EXT:
             show_nandroid_restore_menu("/emmc");
             break;
-        case 5:
+        case ADV_RESTORE_EXT:
             show_nandroid_advanced_restore_menu("/emmc");
             break;
     }
