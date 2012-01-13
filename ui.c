@@ -379,6 +379,8 @@ static int old_y = 0;
 static int diff_x = 0;
 static int diff_y = 0;
 
+static int touch_blank_syncs = 0;
+static int touch_actions = 0;
 
 static void reset_gestures() {
     diff_x = 0;
@@ -400,8 +402,54 @@ static int input_callback(int fd, short revents, void *data)
         return -1;
 
     if (ev.type == EV_SYN) {
-        return 0;
-    } else if (ev.type == EV_REL) {
+       if (touch_actions > 0) {
+            touch_actions = 0;
+            return 0;
+       } else {
+         touch_blank_syncs++;
+       }
+
+       if (touch_blank_syncs > 2) {
+       //finger lifted! lets run with this
+            ev.type = EV_KEY; //touch panel support!!!
+            if(touch_y > 1350 && touch_x > 0) {
+                //they lifted in the touch panel region                
+                if(touch_x < 540) {
+                }else if(touch_x < 900) {
+                    //back button
+                    ev.code = KEY_BACK;
+                } else if(touch_x < 1250) {
+                    //up button
+                    ev.code = KEY_UP;
+                } else if(touch_x < 1630) {
+                    //down button
+                    ev.code = KEY_DOWN;
+                } else if(touch_x < 1940) {
+                    //enter key
+                    ev.code = KEY_ENTER;
+                }
+                vibrate(VIBRATOR_TIME_MS);
+            }
+            if(slide_right == 1) {
+                ev.code = KEY_ENTER;
+                slide_right = 0;
+            } else if(slide_left == 1) {
+                ev.code = KEY_BACK;
+                slide_left = 0;
+            }
+
+            ev.value = 1;
+            in_touch = 0;
+            reset_gestures();
+            touch_blank_syncs = 0;
+       } else {
+            return 0;
+        }
+    } else {
+        touch_actions++;
+    }
+
+    if (ev.type == EV_REL) {
         if (ev.code == REL_Y) {
             // accumulate the up or down motion reported by
             // the trackball.  When it exceeds a threshold
@@ -431,37 +479,6 @@ static int input_callback(int fd, short revents, void *data)
             in_touch = 1; //starting to track touch...
             reset_gestures();
         } else {
-            //finger lifted! lets run with this
-            ev.type = EV_KEY; //touch panel support!!!
-            if(touch_y > 1350 && touch_x > 0) {
-                //they lifted in the touch panel region                
-                if(touch_x < 540) {
-                }else if(touch_x < 850) {
-                    //back button
-                    ev.code = KEY_BACK;
-                } else if(touch_x < 1200) {
-                    //up button
-                    ev.code = KEY_UP;
-                } else if(touch_x < 1580) {
-                    //down button
-                    ev.code = KEY_DOWN;
-                } else if(touch_x < 1890) {
-                    //enter key
-                    ev.code = KEY_ENTER;
-                }
-                vibrate(VIBRATOR_TIME_MS);
-            }
-            if(slide_right == 1) {
-                ev.code = KEY_ENTER;
-                slide_right = 0;
-            } else if(slide_left == 1) {
-                ev.code = KEY_BACK;
-                slide_left = 0;
-            }
-
-            ev.value = 1;
-            in_touch = 0;
-            reset_gestures();
         }
     } else if(ev.type == 3 && ev.code == 53) {
         old_x = touch_x;
