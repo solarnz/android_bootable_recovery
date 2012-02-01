@@ -363,7 +363,7 @@ void show_nandroid_restore_menu(const char* path)
 void show_mount_usb_storage_menu()
 {
     int fd;
-    Volume *vol = volume_for_path("/sdcard");
+    Volume *vol = volume_for_path("/emmc");
     if ((fd = open(BOARD_UMS_LUNFILE, O_WRONLY)) < 0) {
         LOGE("Unable to open ums lunfile (%s)", strerror(errno));
         return -1;
@@ -407,13 +407,11 @@ void show_mount_usb_storage_menu()
 int confirm_selection(const char* title, const char* confirm)
 {
     struct stat info;
-    if (0 == stat("/sdcard/clockworkmod/.confirm", &info)){
-    } else {
+    if (0 == stat("/sdcard/clockworkmod/.no_confirm", &info))
         return 1;
-    }
 
     char* confirm_headers[]  = {  title, "  THIS CAN NOT BE UNDONE.", "", NULL };
-	if (0 == stat("/sdcard/clockworkmod/.one_confirm", &info)) {
+	if (1 || 0 == stat("/sdcard/clockworkmod/.one_confirm", &info)) {
 		char* items[] = { "No",
 						confirm, //" Yes -- wipe partition",   // [1]
 						NULL };
@@ -647,7 +645,13 @@ void show_partition_menu()
 
 		for (i = 0; i < num_volumes; ++i) {
 			Volume* v = &device_volumes[i];
-			if(strcmp("ramdisk", v->fs_type) != 0 && strcmp("mtd", v->fs_type) != 0 && strcmp("emmc", v->fs_type) != 0 && strcmp("bml", v->fs_type) != 0)
+            if(strcmp("/emmc", v->mount_point) == 0){
+				sprintf(&mount_menue[mountable_volumes].mount, "mount %s", v->mount_point);
+				sprintf(&mount_menue[mountable_volumes].unmount, "unmount %s", v->mount_point);
+				mount_menue[mountable_volumes].v = &device_volumes[i];
+				++mountable_volumes;
+			}
+            else if(strcmp("ramdisk", v->fs_type) != 0 && strcmp("emmc", v->fs_type) != 0 && strcmp("mtd", v->fs_type) != 0 && strcmp("bml", v->fs_type) != 0)
 			{
 				sprintf(&mount_menue[mountable_volumes].mount, "mount %s", v->mount_point);
 				sprintf(&mount_menue[mountable_volumes].unmount, "unmount %s", v->mount_point);
