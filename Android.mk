@@ -31,7 +31,7 @@ ifdef I_AM_KOUSH
 RECOVERY_NAME := ClockworkMod Recovery
 LOCAL_CFLAGS += -DI_AM_KOUSH
 else
-RECOVERY_NAME := CWM-based Recovery
+RECOVERY_NAME := EOS (CWM-based) Recovery
 endif
 
 RECOVERY_VERSION := $(RECOVERY_NAME) R6 (Touch)
